@@ -32,6 +32,9 @@ var eventOutputContainer = document.getElementById("message");
 		var svg = d3.select(map.getPanes().overlayPane).append("svg");
 		var g = svg.append("g").attr("class", "leaflet-zoom-hide");
 
+		var svg = d3.select(map.getPanes().overlayPane).append("svg");
+		var g = svg.append("g").attr("class", "leaflet-zoom-hide");
+
 		function projectPoint(lat, lng) {
 			return map.latLngToLayerPoint(new L.LatLng(lat, lng));
 		}
@@ -51,6 +54,12 @@ var eventOutputContainer = document.getElementById("message");
 			var lat2 = mapBounds["_northEast"]["lat"];
 			var lng1 = mapBounds["_southWest"]["lng"];
 			var lng2 = mapBounds["_northEast"]["lng"];
+
+			var cell_size = 10;
+			var w = window.innerWidth;
+			var h = window.innerHeight;
+
+			var checked = document.getElementById("heatmap").checked
 
 			request = "/getData?lat1=" + lat1 + "&lat2=" + lat2 + "&lng1=" + lng1 + "&lng2=" + lng2
 
@@ -77,9 +86,52 @@ var eventOutputContainer = document.getElementById("message");
 					})
 				;
 
+				// USING .attr("fill", ), ADD A PROPERTY FOR THE CIRCLES TO DEFINE THEIR COLOR BASED ON THE NORMALIZED PRICE
+				// IMPLEMENT THE PRICE NORMALIZATION ON THE SERVER AND SEND WITH THE REST OF THE DATA BACK TO THE CLIENT
+				// REMEMBER TO REMOVE THE FILL STYLING FOR THE CIRCLES FROM THE style.css FILE OR THIS WILL OVERRIDE THE NEW COLOR
+			
+			.attr("fill", function(d){ 		
+				return "hsl(" + Math.floor(d.properties.normprice*100+150) + ", 100%, 70%)";		
+			})		
+			.attr("fill-opacity", function(d){		
+				tooltip_price.style("fill-opacity",".5")		
+			})
+		;
+
+
+		// call function to update geometry
+		update();
+		map.on("viewreset", update);
+
+		if (checked == true){
+
+			var topleft = projectPoint(lat2, lng1);
+
+			svg_overlay.attr("width", w)
+				.attr("height", h)
+				.style("left", topleft.x + "px")
+				.style("top", topleft.y + "px");
+
+			//create placeholder rect geometry and bind it to data
+			var rectangles = g_overlay.selectAll("rect").data(data.analysis);
+			rectangles.enter().append("rect");
+
+			rectangles
+				.attr("x", function(d) { return d.x; })
+				.attr("y", function(d) { return d.y; })
+				.attr("width", function(d) { return d.width; })
+				.attr("height", function(d) { return d.height; })
+		    	.attr("fill-opacity", ".2")
+		    	.attr("fill", function(d) { return "hsl(" + Math.floor((1-d.value)*250) + ", 100%, 50%)"; });
+		
+		};
+
+
 				// function to update the data
 				function update() {
 
+						g_overlay.selectAll("rect").remove()
+						
 					// get bounding box of data
 				    var bounds = path.bounds(data),
 				        topLeft = bounds[0],
